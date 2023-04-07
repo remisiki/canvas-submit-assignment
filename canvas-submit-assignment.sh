@@ -19,7 +19,7 @@ selfId=`
 		-s\
 		-X GET "https://umich.instructure.com/api/v1/users/self"\
 		-H "authorization: Bearer $token"\
-	| jq '.id'\
+	| jq ".id"\
 	2>$errfile
 `
 if [[ -s $errfile || $selfId == "null" ]]; then
@@ -35,7 +35,7 @@ courses=`
 		-s\
 		-X GET "https://umich.instructure.com/api/v1/users/self/favorites/courses"\
 		-H "authorization: Bearer $token"\
-	| jq '[.[] | select(.id == 562557 or .id == 529196 or .id == 137833 or .id == 564786 or .id == 137916 | not)]'\
+	| jq "[.[] | select(.id == 562557 or .id == 529196 or .id == 137833 or .id == 564786 or .id == 137916 | not)]"\
 	2>$errfile
 `
 printf "\r"
@@ -44,12 +44,12 @@ if [[ -s $errfile || $courses == "null" ]]; then
 	exit 1
 fi
 printf "Fetching courses...Done\n"
-courseCount=`echo $courses | jq '. | length'`
+courseCount=`echo $courses | jq ". | length"`
 output=""
 for (( i = 0; i < courseCount; i++ )); do
-	courseId=`echo $courses | jq '.['$i'].id'`
+	courseId=`echo $courses | jq ".[$i].id"`
 	output+=`printf "%d\t" $i`
-	output+=`echo $courses | jq -r '.['$i'] | "\(.name)"'`
+	output+=`echo $courses | jq -r ".[$i] | \"\\(.name)\""`
 	output+=$'\n'
 done
 printf "%s" "$output"
@@ -62,7 +62,7 @@ elif [[ (! $courseIndex =~ $isDigit) || ($courseIndex -ge $courseCount) ]]; then
 	printf "Bad selection\n" >&2
 	exit 1
 fi
-courseId=`echo $courses | jq '.['$courseIndex'].id'`
+courseId=`echo $courses | jq ".[$courseIndex].id"`
 
 # Fetch asssigments due after currentTime
 currentTime=`date "+%Y-%m-%dT%H:%M:%SZ" -u`
@@ -102,14 +102,14 @@ assignmentId=`echo $assignments | jq '.['$assignmentIndex'].id'`
 
 # Fetch upload url
 printf "Fetching upload url..."
-firstFileName=`basename $1`
+firstFileName=`basename "$1"`
 uploadUrl=`
 	curl\
 		-s\
 		-X POST "https://umich.instructure.com/api/v1/courses/$courseId/assignments/$assignmentId/submissions/$selfId/files"\
 		-H "authorization: Bearer $token"\
 		-H "content-type: application/json;charset=UTF-8"\
-		-d '{"name":"'$firstFileName'","content_type":"unknown/unknown","submit_assignment":true,"no_redirect":true}'\
+		-d "{\"name\":\"${firstFileName}\",\"content_type\":\"unknown/unknown\",\"submit_assignment\":true,\"no_redirect\":true}"\
 	| jq -r '.upload_url'\
 	2>$errfile
 `
